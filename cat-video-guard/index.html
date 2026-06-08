@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="🐱猫猫视频">
+  <meta name="theme-color" content="#000000">
+  <title>🐱 喵视频守护者</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 视频浏览器容器 -->
+  <div id="browser-container">
+    <iframe id="video-frame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups"
+            allow="autoplay; fullscreen; picture-in-play; camera; microphone"
+            loading="eager"
+            referrerpolicy="no-referrer">
+    </iframe>
+    
+    <!-- 加载提示 -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">正在加载视频...</p>
+    </div>
+    
+    <!-- URL输入界面（首次使用或无参数时）-->
+    <div id="url-input-view" class="input-view">
+      <div class="input-container">
+        <h1 class="app-title">🐱 喵视频守护者</h1>
+        <p class="app-subtitle">给猫咪一个安全的观影环境</p>
+        
+        <div class="input-group">
+          <label for="video-url">粘贴视频链接</label>
+          <textarea id="video-url" 
+                    placeholder="支持任意链接：B站、抖音、YouTube..."
+                    rows="3"></textarea>
+        </div>
+        
+        <button id="start-btn" class="primary-btn">
+          🔒 启动防误触模式
+        </button>
+        
+        <div class="tips">
+          <h3>💡 使用提示</h3>
+          <ul>
+            <li>复制任意视频链接后点击上方按钮</li>
+            <li>或通过快捷指令自动启动</li>
+            <li>解锁方式：四角点击 + 密码</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔒 防误触保护层 (核心!) -->
+  <div id="guard-overlay" class="guard-overlay">
+    <!-- 屏蔽区域 - 底部手势栏 -->
+    <div class="blocked-zone zone-bottom" data-zone="home-indicator"></div>
+    
+    <!-- 屏蔽区域 - 左右滑动提示区（可选）-->
+    <div class="blocked-zone zone-left" data-zone="swipe-left"></div>
+    <div class="blocked-zone zone-right" data-zone="swipe-right"></div>
+
+    <!-- 手势解锁交互区 -->
+    <div id="gesture-unlock-area" class="unlock-area gesture-unlock">
+      <div class="unlock-hint">
+        <span class="lock-icon">🔒</span>
+        <span class="hint-text">屏幕已锁定</span>
+        <span class="hint-subtext">点击四角解锁</span>
+      </div>
+      
+      <!-- 四角指示器 -->
+      <div class="corner-indicators">
+        <div class="corner corner-tl" data-corner="tl">
+          <span class="corner-num">1</span>
+          <div class="corner-ring"></div>
+        </div>
+        <div class="corner corner-tr" data-corner="tr">
+          <span class="corner-num">2</span>
+          <div class="corner-ring"></div>
+        </div>
+        <div class="corner corner-br" data-corner="br">
+          <span class="corner-num">3</span>
+          <div class="corner-ring"></div>
+        </div>
+        <div class="corner corner-bl" data-corner="bl">
+          <span class="corner-num">4</span>
+          <div class="corner-ring"></div>
+        </div>
+      </div>
+      
+      <!-- 进度指示 -->
+      <div class="gesture-progress">
+        <div class="progress-dots">
+          <span class="dot active" data-step="1"></span>
+          <span class="dot" data-step="2"></span>
+          <span class="dot" data-step="3"></span>
+          <span class="dot" data-step="4"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIN密码输入界面 (第二层解锁) -->
+    <div id="pin-unlock-view" class="unlock-area pin-unlock hidden">
+      <div class="pin-container">
+        <div class="pin-header">
+          <span class="pin-title">输入密码</span>
+          <button class="pin-cancel-btn" id="pin-cancel">取消</button>
+        </div>
+        
+        <div class="pin-display">
+          <span class="pin-dot" data-index="0"></span>
+          <span class="pin-dot" data-index="1"></span>
+          <span class="pin-dot" data-index="2"></span>
+          <span class="pin-dot" data-index="3"></span>
+        </div>
+        
+        <div class="pin-keypad">
+          <button class="key key-num" data-key="1">1</button>
+          <button class="key key-num" data-key="2">2</button>
+          <button class="key key-num" data-key="3">3</button>
+          <button class="key key-num" data-key="4">4</button>
+          <button class="key key-num" data-key="5">5</button>
+          <button class="key key-num" data-key="6">6</button>
+          <button class="key key-num" data-key="7">7</button>
+          <button class="key key-num" data-key="8">8</button>
+          <button class="key key-num" data-key="9">9</button>
+          <button class="key key-empty"></button>
+          <button class="key key-num" data-key="0">0</button>
+          <button class="key key-delete" data-key="delete">⌫</button>
+        </div>
+        
+        <div class="pin-actions">
+          <button class="secondary-btn" id="pin-forgot">忘记密码?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 猫爪检测提示 (趣味功能) -->
+    <div id="cat-detected-toast" class="cat-toast hidden">
+      <span class="cat-emoji">😼</span>
+      <span class="toast-text">检测到猫爪操作!</span>
+    </div>
+
+    <!-- 解锁成功动画 -->
+    <div id="unlock-success-animation" class="success-animation hidden">
+      <div class="success-icon">✓</div>
+      <span class="success-text">已解锁</span>
+    </div>
+  </div>
+
+  <!-- 设置面板 (已解锁状态下可访问) -->
+  <div id="settings-panel" class="settings-panel hidden">
+    <div class="settings-content">
+      <h2>⚙️ 设置</h2>
+      
+      <div class="setting-item">
+        <label>修改PIN密码</label>
+        <button id="change-pin-btn" class="small-btn">修改</button>
+      </div>
+      
+      <div class="setting-item">
+        <label>屏蔽底部手势栏</label>
+        <input type="checkbox" id="toggle-bottom-bar" checked>
+      </div>
+      
+      <div class="setting-item">
+        <label>屏蔽侧边滑动</label>
+        <input type="checkbox" id="toggle-sides" checked>
+      </div>
+      
+      <div class="setting-item">
+        <label>猫爪检测模式</label>
+        <input type="checkbox" id="toggle-cat-detect">
+      </div>
+      
+      <div class="setting-item">
+        <label>自动重新锁定(秒)</label>
+        <input type="number" id="auto-lock-time" value="30" min="5" max="300">
+      </div>
+      
+      <button id="lock-now-btn" class="primary-btn">
+        🔒 立即锁定
+      </button>
+      
+      <button id="close-settings-btn" class="secondary-btn">
+        关闭
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript 模块 -->
+  <script src="js/utils.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/unlock-gesture.js"></script>
+  <script src="js/unlock-pin.js"></script>
+  <script src="js/guard.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔍 路径探测器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+    
+    .path-box {
+      background: #f5f5f5;
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      word-break: break-all;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+      line-height: 1.6;
+      min-height: 80px;
+    }
+    
+    .path-label {
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #FF6B35, #FF8E53);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: transform 0.2s;
+    }
+    
+    .btn:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-secondary {
+      background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    }
+    
+    .btn-copy {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    
+    .success-msg {
+      background: #d4edda;
+      color: #155724;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .success-msg.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .instructions {
+      background: #fff3cd;
+      color: #856404;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .instructions strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 路径探测器</h1>
+    <p class="subtitle">自动获取当前文件的完整路径</p>
+    
+    <div class="path-box">
+      <div class="path-label">📍 当前页面的 URL：</div>
+      <div id="current-url">检测中...</div>
+    </div>
+    
+    <div class="path-box">
+      <div class="path-label">🎯 用于快捷指令的完整路径：</div>
+      <div id="full-path">检测中...</div>
+    </div>
+    
+    <button class="btn btn-copy" onclick="copyPath()">
+      📋 复制完整路径
+    </button>
+    
+    <button class="btn btn-secondary" onclick="openMainApp()">
+      🚀 直接启动喵视频守护者
+    </button>
+    
+    <div id="success-msg" class="success-msg">
+      ✅ 路径已复制到剪贴板！<br>
+      现在可以去创建快捷指令了~
+    </div>
+    
+    <div class="instructions">
+      <strong>💡 如何使用：</strong>
+      1. 点击上方「复制完整路径」按钮<br>
+      2. 打开「快捷指令」App创建新快捷指令<br>
+      3. 在需要填写路径的地方粘贴即可<br><br>
+      <strong>📌 注意事项：</strong>
+      • 此工具必须放在和 index.html 同一文件夹才能准确获取路径<br>
+      • 如果路径中有中文或空格，快捷指令可能需要额外处理
+    </div>
+    
+    <p class="note">
+      将此文件放在 cat-video-guard 文件夹内一起传到iPad
+    </p>
+  </div>
+
+  <script>
+    // 页面加载完成后获取路径
+    window.addEventListener('DOMContentLoaded', function() {
+      detectPath();
+    });
+    
+    function detectPath() {
+      // 获取当前页面的完整URL
+      const currentUrl = window.location.href;
+      
+      // 显示当前URL
+      document.getElementById('current-url').textContent = currentUrl || '(无法获取)';
+      
+      // 构建用于快捷指令的路径
+      let fullPath = '';
+      
+      if (currentUrl && currentUrl.startsWith('file://')) {
+        // 本地文件协议 - 已经是正确的格式
+        fullPath = currentUrl.replace('path-detector.html', 'index.html?url=');
+        
+        // 确保以 ?url= 结尾
+        if (!fullPath.endsWith('?url=')) {
+          if (fullPath.endsWith('index.html')) {
+            fullPath += '?url=';
+          } else if (!fullPath.includes('?url=')) {
+            fullPath += '?url=';
+          }
+        }
+      } else if (currentUrl) {
+        // HTTP协议 - 可能是通过服务器访问的
+        fullPath = currentUrl.replace('path-detector.html', 'index.html?url=');
+        
+        if (!fullPath.includes('?url=')) {
+          fullPath += '?url=';
+        }
+      } else {
+        fullPath = '无法自动检测路径\n\n请确保此文件放在 cat-video-guard 文件夹内';
+      }
+      
+      document.getElementById('full-path').textContent = fullPath;
+      
+      // 保存到localStorage供其他页面使用
+      localStorage.setItem('cvg_detected_path', fullPath);
+    }
+    
+    function copyPath() {
+      const pathText = document.getElementById('full-path').textContent;
+      
+      if (pathText && !pathText.includes('无法')) {
+        // 尝试复制到剪贴板
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(pathText).then(function() {
+            showSuccess();
+          }).catch(function() {
+            // 如果失败，使用备用方案
+            fallbackCopy(pathText);
+          });
+        } else {
+          fallbackCopy(pathText);
+        }
+      } else {
+        alert('无法获取有效路径！\n\n请确保：\n1. 此文件在 cat-video-guard 文件夹内\n2. 通过「文件」App或Safari打开');
+      }
+    }
+    
+    function fallbackCopy(text) {
+      // 创建临时文本区域
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      
+      try {
+        textarea.select();
+        document.execCommand('copy');
+        showSuccess();
+      } catch (err) {
+        alert('复制失败，请手动复制以下路径：\n\n' + text);
+      }
+      
+      document.body.removeChild(textarea);
+    }
+    
+    function showSuccess() {
+      const msg = document.getElementById('success-msg');
+      msg.classList.add('show');
+      
+      setTimeout(() => {
+        msg.classList.remove('show');
+      }, 3000);
+    }
+    
+    function openMainApp() {
+      // 获取主应用的路径
+      const currentPath = window.location.href;
+      let mainAppPath = currentPath.replace('path-detector.html', 'index.html');
+      
+      // 如果有保存的视频链接参数，传递过去
+      const savedUrl = localStorage.getItem('cvg_pending_url');
+      if (savedUrl) {
+        mainAppPath += '?url=' + encodeURIComponent(savedUrl);
+      }
+      
+      // 跳转到主应用
+      window.location.href = mainAppPath;
+    }
+    
+    // 检查是否有待处理的URL
+    window.addEventListener('load', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const pendingUrl = urlParams.get('url');
+      
+      if (pendingUrl) {
+        localStorage.setItem('cvg_pending_url', pendingUrl);
+        
+        // 显示提示
+        const note = document.querySelector('.note');
+        if (note) {
+          note.innerHTML = '✅ 已接收到视频链接：<br>' + decodeURIComponent(pendingUrl) + 
+                         '<br>点击「启动喵视频守护者」即可使用';
+          note.style.color = '#28a745';
+          note.style.fontWeight = 'bold';
+        }
+      }
+    });
+  </script>
+</body>
+</html>
